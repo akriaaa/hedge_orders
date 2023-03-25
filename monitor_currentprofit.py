@@ -1,4 +1,4 @@
-from sched import scheduler
+from apscheduler.schedulers.blocking import BlockingScheduler
 import pymysql
 import datetime
 
@@ -35,15 +35,6 @@ class ShenDengDataBaseHedging:
             'db': 'exchange_hedge',
             'port': 3306
         }
-                
-    def start_time(self) -> str:
-        return datetime.datetime.now().strftime('%Y-%m-%d 00:00:00')
-    
-    def new_time(self) -> str:
-        return datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    
-    def end_time(self) -> str:
-        return datetime.datetime.now().strftime('%Y-%m-%d')
     
     def execute_sql(self, sql: str) -> pd.DataFrame:
         with pymysql.connect(**self.db_config) as conn:
@@ -51,12 +42,13 @@ class ShenDengDataBaseHedging:
             cursor.execute(sql)
             return cursor.fetchall()
     
-    def update_date(self, start_time: str, end_time: str):
+    def update_date(self):
+        start_time = datetime.datetime.now().strftime('%Y-%m-%d 00:00:00')
+        end_time = datetime.datetime.now().strftime('%Y-%m-%d')
         self.customer_data = f'bill_time between "{start_time}" and "{end_time} 23:59:59"'
-
-
+    
     def new_customer_orders(self) -> pd.DataFrame:
-        self.update_date(start_time=self.start_time(), end_time=self.end_time())
+        self.update_date()
         sql = self.SQL['CUSTOMER_ORDERS_SELECT'].format(condation=self.customer_data)
         result = self.execute_sql(sql)
         return pd.DataFrame(result, columns=['id', 'symbol', 'side', 'orderprice', 'volume', 'turnover'])
@@ -71,21 +63,22 @@ class ShenDengDataBaseHedging:
         price = self.price()
         data = pd.merge(customer_orders, price, on='symbol', how='left')
         data['side'] = data['side'].apply(lambda x: 'buy' if x == 1 else 'sell')
-        data[['price', 'orderprice']] = data[['price', 'orderprice']].astype(float)
+        data[['price', 'orderprice', 'volume']] = data[['price', 'orderprice', 'volume']].astype(float)
 
         data['price'] = np.where(data['price'].isnull(), data['orderprice'], data['price'])
-        data['profit'] = np.where(data['side'] == 'buy', data['orderprice'] - data['price'], data['price'] - data['orderprice'])
+        data['profit'] = np.where(data['side'] == 'buy', (data['orderprice'] - data['price']) * data['volume'], (data['price'] - data['orderprice']) * data['volume'])
 
         profit = data['profit'].sum()
-        logging.info(f'time: {self.new_time()} profit: {profit}')
+        logging.info(f'Current profit: {profit}')
+        
         return data
     
-
     def main(self):
-        aps = scheduler.schedulers.blocking.BlockingScheduler()
-        aps.add_job(self.data, 'cron', hour='/*1')
-        aps.start()
+        scheduler = BlockingScheduler()
+        scheduler.add_job(self.data, 'cron', hour='*/1')
+        scheduler.start()
     
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', filename='profit.log')
+    #ShenDengDataBaseHedging().main()
     ShenDengDataBaseHedging().data()
