@@ -6,12 +6,19 @@ from binance.exceptions import BinanceAPIException
 import pymysql
 
 class AmplitudeAnalyzer:
+    # db_config = {
+    #     "host": "exchange-hedge.cmvznimubfkb.ap-southeast-1.rds.amazonaws.com",
+    #     "user": "ex_lijingang",
+    #     "password": "ow98al0eq64ex9qnmmnx30xwn0tkmvgk",
+    #     "database": "exchange_hedge",
+    #     "port": 3306
+    # }
     db_config = {
         "host": "exchange-hedge.cmvznimubfkb.ap-southeast-1.rds.amazonaws.com",
-        "user": "ex_lijingang",
-        "password": "ow98al0eq64ex9qnmmnx30xwn0tkmvgk",
+        "user": "QuantitativeTrading",
+        "password": "7qo6g3vo0licd09kbmm9x6k3l4bbve",
         "database": "exchange_hedge",
-        "port": 3306
+        "port": 3306    
     }
 
     def __init__(self):

@@ -40,6 +40,9 @@ class BinanceAnnouncementNotifier:
             if latest_announcement and latest_announcement != self.previous_announcement:
                 self.send_telegram_message(f"🔔 New Binance Announcement 🔔\n\n{latest_announcement}")
                 self.previous_announcement = latest_announcement
+            else:
+                self.send_telegram_message(f" no new announcement"  )
+
 if __name__ == "__main__":
     telegram_token = '6020317499:AAEYk8iUT8htSnm0goTkLsvazZ449zXqVew'
     telegram_chat_id = '808400546'
